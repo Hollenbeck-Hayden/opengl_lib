@@ -1,57 +1,34 @@
 #pragma once
 
 #include <GL/glew.h>
-#include <SDL2/SDL.h>
+#include "SDL.h"
+
+#include <iostream>
 #include <string>
-#include <list>
 
-namespace ogl
-{
-	char* file_read(const char* filename);
-	void print_log(GLuint object);
+namespace ogl {
 
-	class OGLError
+	// Print OpenGL info
+	void print_opengl_info();
+
+
+	// Manages a vertex + fragment shader program
+	class ShaderProgram
 	{
 	public:
-		OGLError(const std::string& msg);
+		ShaderProgram() : program(0) {}
+		~ShaderProgram();
 
-		const std::string& getMessage() const;
-
-	private:
-		std::string message;
-	};
-
-
-
-	class Window
-	{
-	public:
-		Window(const std::string& title, unsigned int size_x, unsigned int size_y);
-
-		void swapWindow();
-	
-	private:
-		SDL_Window* window;
-	};
-
-
-
-	class Program
-	{
-	public:
-		Program();
-		~Program();
-		
-		void createShader(const std::string& filename, GLenum type);
-		void createProgram();
+		GLint get_attrib(const std::string& name);
+		GLint get_uniform(const std::string& name);
 
 		void useProgram();
-
-		GLint bindAttribute(const std::string& attribute_name);
-		GLint bindUniform(const std::string& uniform_name);
+		void loadShaders(const std::string& vs_filename, const std::string& fs_filename);
 
 	private:
 		GLuint program;
-		std::list<GLuint> shaders;
+
+		GLuint create_shader(const std::string& filename, GLenum type);
+		std::string read_file(const std::string& filename);
 	};
-};
+}

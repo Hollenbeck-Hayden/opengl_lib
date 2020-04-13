@@ -1,155 +1,141 @@
 #include "opengl_library.h"
+
 #include <iostream>
+#include <fstream>
+#include <sstream>
 
-namespace ogl
-{
-	char* file_read(const char* filename)
-	{
-		SDL_RWops* rw = SDL_RWFromFile(filename, "rb");
-		if (rw == NULL) return NULL;
+namespace ogl {
+	
+	std::string ShaderProgram::read_file(const std::string& filename) {
+		std::stringstream buf;
 
-		Sint64 res_size = SDL_RWsize(rw);
-		char* res = (char*) malloc(res_size + 1);
+		try {
+			std::ifstream infile(filename);
 
-		Sint64 nb_read_total = 0, nb_read = 1;
-		char* buf = res;
-		while (nb_read_total < res_size && nb_read != 0)
-		{
-			nb_read = SDL_RWread(rw, buf, 1, (res_size - nb_read_total));
-			nb_read_total += nb_read;
-			buf += nb_read;
+			std::string line;
+			while(std::getline(infile, line))
+			{
+				buf << line << std::endl;
+			}
+
+			infile.close();
+
+		} catch (std::ios_base::failure& e) {
+			std::cerr << e.what() << std::endl;
 		}
 
-		SDL_RWclose(rw);
-		if (nb_read_total != res_size)
-		{
-			free(res);
-			return NULL;
-		}
-
-		res[nb_read_total] = '\0';
-		return res;
+		return buf.str();
 	}
 
-	void print_log(GLuint object)
-	{
+	void print_log(GLuint object, std::ostream& out) {
 		GLint log_length = 0;
-		if (glIsShader(object)) glGetShaderiv(object, GL_INFO_LOG_LENGTH, &log_length);
-		if (glIsProgram(object)) glGetProgramiv(object, GL_INFO_LOG_LENGTH, &log_length);
-		else
-		{
-			std::cerr << "printLog: Not a shader or a program" << std::endl;
+		if (glIsShader(object))
+			glGetShaderiv(object, GL_INFO_LOG_LENGTH, &log_length);
+		else if (glIsProgram(object))
+			glGetProgramiv(object, GL_INFO_LOG_LENGTH, &log_length);
+		else {
+			out << "printLog: Not a shader or program" << std::endl;
 			return;
 		}
 
-		char* log = (char*) malloc(log_length);
+		char* log = new char[log_length];
 
-		if (glIsShader(object)) glGetShaderInfoLog(object, log_length, NULL, log);
-		else if (glIsProgram(object)) glGetProgramInfoLog(object, log_length, NULL, log);
+		if (glIsShader(object))
+			glGetShaderInfoLog(object, log_length, NULL, log);
+		else if (glIsProgram(object))
+			glGetProgramInfoLog(object, log_length, NULL, log);
 
-		std::cerr << log;
-		free(log);
+		out << log;
+		delete[] log;
 	}
 
-	Program::Program()
-	{}
+	GLuint ShaderProgram::create_shader(const std::string& filename, GLenum type) {
+		std::string source = read_file(filename);
 
-	Program::~Program()
-	{
-		glDeleteProgram(program);
-	}
+		const char* version = "#version 120\n";
 
-	void Program::createShader(const std::string& filename, GLenum type)
-	{
-		const GLchar* source = file_read(filename.c_str());
-		if (source == NULL)
-			throw OGLError("Opening " + filename + ": " + std::string(SDL_GetError()));
+		const GLchar* sources[] = {
+			version,
+			source.c_str()
+		};
 
 		GLuint res = glCreateShader(type);
-		const GLchar* sources[] = {"#version 120\n", source};
 		glShaderSource(res, 2, sources, NULL);
-		free((void*) source);
 
 		glCompileShader(res);
 		GLint compile_ok = GL_FALSE;
 		glGetShaderiv(res, GL_COMPILE_STATUS, &compile_ok);
 		if (compile_ok == GL_FALSE) {
-			print_log(res);
+			std::cerr << filename << ":";
+			print_log(res, std::cerr);
 			glDeleteShader(res);
-			throw OGLError("Failed to compile shader sourced from " + filename);
+			return 0;
 		}
 
-		shaders.push_back(res);
+		return res;
 	}
 
-	void Program::createProgram()
-	{
-		GLint link_ok = GL_FALSE;
-
+	void ShaderProgram::loadShaders(const std::string& vs_filename, const std::string& fs_filename) {
+		
 		program = glCreateProgram();
-		for (const auto& shader : shaders)
-			glAttachShader(program, shader);
-		glLinkProgram(program);
 
+		GLuint vs_shader = create_shader(vs_filename, GL_VERTEX_SHADER);
+		//if (vs_shader == 0) return 0;
+		glAttachShader(program, vs_shader);
+
+		GLuint fs_shader = create_shader(fs_filename, GL_FRAGMENT_SHADER);
+		//if (fs_shader == 0) return 0;
+		glAttachShader(program, fs_shader);
+
+		glLinkProgram(program);
+		GLint link_ok = GL_FALSE;
 		glGetProgramiv(program, GL_LINK_STATUS, &link_ok);
-		if (!link_ok) {
-			ogl::print_log(program);
-			throw OGLError("glLinkProgram");
+		if (link_ok == GL_FALSE) {
+			print_log(program, std::cerr);
+			glDeleteProgram(program);
+			//return 0;
 		}
 	}
 
-	void Program::useProgram()
-	{
-		glUseProgram(program);
-	}
-
-	GLint Program::bindAttribute(const std::string& attribute_name)
-	{
-		GLint attribute = glGetAttribLocation(program, attribute_name.c_str());
-		if (attribute == -1)
-			throw OGLError("Could not bind attribute " + attribute_name);
+	GLint ShaderProgram::get_attrib(const std::string& name) {
+		GLint attribute = glGetAttribLocation(program, name.c_str());
+		if (attribute < 0)
+			std::cerr << "Could not bind attribute " << name << std::endl;
 		return attribute;
 	}
 
-	GLint Program::bindUniform(const std::string& uniform_name)
-	{
-		GLint uniform = glGetUniformLocation(program, uniform_name.c_str());
-		if (uniform == -1)
-			throw OGLError("Could not bind uniform " + uniform_name);
+	GLint ShaderProgram::get_uniform(const std::string& name) {
+		GLint uniform = glGetUniformLocation(program, name.c_str());
+		if (uniform < 0)
+			std::cerr << "Could not bind uniform " << name << std::endl;
 		return uniform;
 	}
 
-	OGLError::OGLError(const std::string& msg)
-	{
-		message = msg;
+	void print_opengl_info() {
+		int major, minor, profile;
+		SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &major);
+		SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &minor);
+		SDL_GL_GetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, &profile);
+
+		std::cout << "OpenGL " << major << "." << minor << " ";
+
+		if (profile & SDL_GL_CONTEXT_PROFILE_CORE)
+			std::cout << "CORE";
+		if (profile & SDL_GL_CONTEXT_PROFILE_COMPATIBILITY)
+			std::cout << "COMPATIBILITY";
+		if (profile & SDL_GL_CONTEXT_PROFILE_ES)
+			std::cout << "ES";
+
+		std::cout << std::endl;
 	}
 
-	const std::string& OGLError::getMessage() const
+	ShaderProgram::~ShaderProgram()
 	{
-		return message;
+		glDeleteProgram(program);
 	}
 
-	Window::Window(const std::string& title, unsigned int size_x, unsigned int size_y)
+	void ShaderProgram::useProgram()
 	{
-		SDL_Init(SDL_INIT_VIDEO);
-		window = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, size_x, size_y, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
-
-		if (window == NULL)
-			throw OGLError("Could create window: " + std::string(SDL_GetError()));
-
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-		SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 1);
-
-		if (SDL_GL_CreateContext(window) == NULL)
-			throw OGLError("SDL_GL_CreateContext: " + std::string(SDL_GetError()));
-
-		GLenum glew_status = glewInit();
-		if (glew_status != GLEW_OK)
-			throw OGLError("glewInit: " + std::string(reinterpret_cast<const char*>(glewGetErrorString(glew_status))));
+		glUseProgram(program);
 	}
-
-	void Window::swapWindow()
-	{
-		SDL_GL_SwapWindow(window);
-	}
-};
+}

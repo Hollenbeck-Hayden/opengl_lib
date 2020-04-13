@@ -1,15 +1,15 @@
 CPPFLAGS=$(shell sdl2-config --cflags) $(EXTRA_CPPFLAGS)
 LDLIBS=$(shell sdl2-config --libs) -lGLEW $(EXTRA_LDLIBS)
 EXTRA_LDLIBS?=-lGL
-INCLUDES=includes
+INCLUDES=../../mvl/mvl/src/
 
-all: triangle
+all: opengl
 
-triangle:
-	g++ $(CPPFLAGS) triangle.cpp opengl_library.cpp $(LDLIBS) -I $(INCLUDES) -o triangle 
+opengl:
+	g++ $(CPPFLAGS) main.cpp opengl_library.cpp $(LDLIBS) -I $(INCLUDES) -o opengl
 
 clean:
-	rm -f *.o triangle
+	rm -f *.o opengl
 
 again: clean all
 
