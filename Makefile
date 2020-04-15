@@ -6,7 +6,7 @@ INCLUDES=../../mvl/mvl/src/
 all: opengl
 
 opengl:
-	g++ $(CPPFLAGS) main.cpp opengl_library.cpp $(LDLIBS) -I $(INCLUDES) -o opengl
+	g++ $(CPPFLAGS) main.cpp opengl_library.cpp hud_renderer.cpp test_renderer.cpp $(LDLIBS) -I $(INCLUDES) -o opengl
 
 clean:
 	rm -f *.o opengl

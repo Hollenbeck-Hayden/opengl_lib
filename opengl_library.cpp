@@ -50,6 +50,7 @@ namespace ogl {
 	}
 
 	GLuint ShaderProgram::create_shader(const std::string& filename, GLenum type) {
+
 		std::string source = read_file(filename);
 
 		const char* version = "#version 120\n";
@@ -66,10 +67,11 @@ namespace ogl {
 		GLint compile_ok = GL_FALSE;
 		glGetShaderiv(res, GL_COMPILE_STATUS, &compile_ok);
 		if (compile_ok == GL_FALSE) {
-			std::cerr << filename << ":";
-			print_log(res, std::cerr);
+			std::stringstream error_log;
+			error_log << filename << ": ";
+			print_log(res, error_log);
 			glDeleteShader(res);
-			return 0;
+			throw OglException(error_log.str());
 		}
 
 		return res;
@@ -80,34 +82,33 @@ namespace ogl {
 		program = glCreateProgram();
 
 		GLuint vs_shader = create_shader(vs_filename, GL_VERTEX_SHADER);
-		//if (vs_shader == 0) return 0;
 		glAttachShader(program, vs_shader);
 
 		GLuint fs_shader = create_shader(fs_filename, GL_FRAGMENT_SHADER);
-		//if (fs_shader == 0) return 0;
 		glAttachShader(program, fs_shader);
 
 		glLinkProgram(program);
 		GLint link_ok = GL_FALSE;
 		glGetProgramiv(program, GL_LINK_STATUS, &link_ok);
 		if (link_ok == GL_FALSE) {
-			print_log(program, std::cerr);
+			std::stringstream error_log;
+			print_log(program, error_log);
 			glDeleteProgram(program);
-			//return 0;
+			throw OglException(error_log.str());
 		}
 	}
 
 	GLint ShaderProgram::get_attrib(const std::string& name) {
 		GLint attribute = glGetAttribLocation(program, name.c_str());
 		if (attribute < 0)
-			std::cerr << "Could not bind attribute " << name << std::endl;
+			throw OglException("Could not bind attribute " + name);
 		return attribute;
 	}
 
 	GLint ShaderProgram::get_uniform(const std::string& name) {
 		GLint uniform = glGetUniformLocation(program, name.c_str());
 		if (uniform < 0)
-			std::cerr << "Could not bind uniform " << name << std::endl;
+			throw OglException("Could not bind uniform " + name);
 		return uniform;
 	}
 
@@ -137,5 +138,86 @@ namespace ogl {
 	void ShaderProgram::useProgram()
 	{
 		glUseProgram(program);
+	}
+
+	void initGlew()
+	{
+		GLenum glew_status = glewInit();
+		if (glew_status != GLEW_OK)
+		{
+			std::stringstream error_log;
+			error_log << "Error: glewInit: " << glewGetErrorString(glew_status);
+			throw OglException(error_log.str());
+		}
+	}
+
+	Window::Window(const std::string& title, int width, int height)
+	{
+		window = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+						width, height, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
+		
+		if (window == nullptr)
+		{
+			std::stringstream error_log;
+			error_log << "Could not create window: " << SDL_GetError();
+			throw OglException(error_log.str());
+		}
+
+		SDL_GL_CreateContext(window);
+		
+		initGlew();
+	}
+
+	Window::~Window()
+	{
+		SDL_DestroyWindow(window);
+	}
+
+	int Window::getWidth()
+	{
+		int width;
+		SDL_GetWindowSize(window, &width, nullptr);
+		return width;
+	}
+
+	int Window::getHeight()
+	{
+		int height;
+		SDL_GetWindowSize(window, nullptr, &height);
+		return height;
+	}
+
+	void Window::swapBuffers()
+	{
+		SDL_GL_SwapWindow(window);
+	}
+
+	ShaderProgram::ShaderProgram(const std::string& vs_filename, const std::string& fs_filename)
+	{
+		loadShaders(vs_filename, fs_filename);
+	}
+
+	Renderer::Renderer(const std::string& vs_filename, const std::string& fs_filename)
+		: program(vs_filename, fs_filename)
+	{
+		shader_vertex_position = program.get_attrib("position");
+		shader_uniform_vp_matrix = program.get_uniform("vp_matrix");
+
+		view_matrix = aff::identity<GLfloat,3>();
+		proj_matrix = aff::identity<GLfloat,3>();
+	}
+
+	void Renderer::render(Window& window)
+	{
+		program.useProgram();
+		glEnableVertexAttribArray(shader_vertex_position);
+
+		this->calculateVP(window);
+
+		glUniformMatrix4fv(shader_uniform_vp_matrix, 1, GL_FALSE, (proj_matrix * view_matrix).toArray());
+
+		this->draw();
+
+		glDisableVertexAttribArray(shader_vertex_position);
 	}
 }
