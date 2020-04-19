@@ -1,8 +1,13 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.13)
 project(opengl_lib VERSION 0.0.1 LANGUAGES CXX)
 
-add_executable(opengl src/main/main.cpp src/opengl/hud_renderer.cpp src/opengl/opengl_library.cpp src/opengl/test_renderer.cpp)
+# Define program target
+add_executable(opengl)
 target_include_directories(opengl PUBLIC include)
+
+# Add source directories
+add_subdirectory(src)
+
 
 # Add cmath library
 target_link_libraries(opengl m)

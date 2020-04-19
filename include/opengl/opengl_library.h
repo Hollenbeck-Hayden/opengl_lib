@@ -3,7 +3,7 @@
 #include <GL/glew.h>
 #include "SDL.h"
 #include "mvl/mvl.h"
-#include "aff/affine.h"
+#include "mvl/affine.h"
 
 #include <iostream>
 #include <sstream>
