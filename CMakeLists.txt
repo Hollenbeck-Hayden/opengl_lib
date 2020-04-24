@@ -13,7 +13,10 @@ add_subdirectory(src)
 target_link_libraries(opengl m)
 
 # Add MVL library
-target_include_directories(opengl PUBLIC /home/antihydra/projects/mvl/mvl/include)
+#target_include_directories(opengl PUBLIC /home/antihydra/projects/mvl/mvl/include)
+find_package(mvl CONFIG REQUIRED)
+target_link_libraries(opengl mvl::mvl)
+
 
 # Add OpenGL library
 set(OpenGL_GL_PREFERENCE "GLVND")
