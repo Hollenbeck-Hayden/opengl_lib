@@ -12,34 +12,37 @@
 
 namespace ogl
 {
-	class TestRenderer : public Renderer
+	class LineRenderer : public Renderer
 	{
 	public:
-		TestRenderer();
+		LineRenderer();
 			
 		virtual void draw();
 		virtual void calculateVP(Window& window);
 	
 	private:
-		const unsigned int num_lines = 100;
+		unsigned int num_lines = 20;
+		GLfloat spacing = 5;
 
-		std::vector<Sprite<GLfloat,2>> lines;
+		std::vector<mvl::Vector<GLfloat,2>> end_A,end_B;
+		std::vector<GLfloat> widths;
+
+		GLuint attribute_endpoint_A, attribute_endpoint_B, attribute_uv, attribute_thickness, attribute_color, uniform_resolution;
 	};
 
 
-	class TestProgram
+	class LineProgram
 	{
 	public:
 
-		TestProgram();
-		~TestProgram();
+		LineProgram();
+		~LineProgram();
 
 		void render();
 		bool pollEvents();
 		
 	private:
 		Window window;
-		TestRenderer test_renderer;
-		HudRenderer hud_renderer;
+		LineRenderer line_renderer;
 	};
 };

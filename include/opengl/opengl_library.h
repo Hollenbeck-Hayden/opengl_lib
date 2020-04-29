@@ -77,7 +77,7 @@ namespace ogl {
 	protected:
 		ShaderProgram program;
 
-		GLint shader_vertex_position;
+		//GLint shader_vertex_position;
 		GLint shader_uniform_vp_matrix;
 
 		aff::HomMatrix<GLfloat,3> proj_matrix;

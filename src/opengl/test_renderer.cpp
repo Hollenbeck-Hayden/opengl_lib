@@ -3,62 +3,44 @@
 namespace ogl
 {
 	TestRenderer::TestRenderer()
-		: Renderer("../data/shaders/square.v.glsl", "../data/shaders/square.f.glsl")
+		: Renderer("../data/shaders/point.v.glsl", "../data/shaders/point.f.glsl")
 	{
-		uniform_box_color = program.get_uniform("box_color");
-		camera_offset = 0;
+		points.setPrimitiveType(GL_POINTS);
 
-		// Define sprite vertices
-		box_center[0] = 2;
-		box_center[1] = -3;
-		box_center[2] = 5;
+		std::vector<mvl::Vector<GLfloat,2>> centers;
+		for (unsigned int i = 0; i < num_points; i++)
+			centers.push_back(mvl::Vector<GLfloat,2>{2.0 * radius * (GLfloat) i, 0});
 
-		box_size = 0.5;
+		points.addVertices(centers);
+		
 
-		box_axis1 = mvl::Vector<GLfloat,3>{(GLfloat) 0.0, (GLfloat) 1.0,(GLfloat) 1.0};
-		box_axis2 = mvl::Vector<GLfloat,3>{(GLfloat) 0.0, (GLfloat)-1.0,(GLfloat) 1.0};
-
-		normalize(box_axis1);
-		normalize(box_axis2);
-
-		// Define box coordiantes
-		auto box_r = box_center + box_size * box_axis1;
-		auto box_l = box_center - box_size * box_axis1;
-		auto box_t = box_center + box_size * box_axis2;
-		auto box_b = box_center - box_size * box_axis2;
-		auto box_rt = box_center + box_size * ( box_axis1 + box_axis2);
-		auto box_lt = box_center + box_size * (-box_axis1 + box_axis2);
-		auto box_rb = box_center + box_size * ( box_axis1 - box_axis2);
-		auto box_lb = box_center + box_size * (-box_axis1 - box_axis2);
-
-		white_box.addVertices(std::vector<mvl::Vector<GLfloat,3>>{box_center, box_r, box_t, box_rt});
-		  red_box.addVertices(std::vector<mvl::Vector<GLfloat,3>>{box_center, box_t, box_l, box_lt});
-		green_box.addVertices(std::vector<mvl::Vector<GLfloat,3>>{box_center, box_l, box_b, box_lb});
-		 blue_box.addVertices(std::vector<mvl::Vector<GLfloat,3>>{box_center, box_b, box_r, box_rb});
+		//for (const auto& center : centers)
+		//{
+		//	auto ul = center + mvl::Vector<GLfloat,2>{-1,-1};
+		//	auto ur = center + mvl::Vector<GLfloat,2>{-1, 1};
+		//	auto ll = center + mvl::Vector<GLfloat,2>{ 1,-1};
+		//	auto lr = center + mvl::Vector<GLfloat,2>{ 1, 1};
+		//	boxes.push_back(Sprite<GLfloat,2>());
+		//	boxes.back().addVertices(std::vector<mvl::Vector<GLfloat,2>>{ul,ur,ll,lr});
+		//}
 	}
 
 	void TestRenderer::draw()
 	{
-		glUniform3f(uniform_box_color, 255, 255, 255);
-		white_box.draw(shader_vertex_position);
+		glUniform1f(uniform_radius, radius);
+		points.draw(shader_vertex_position);
 
-		glUniform3f(uniform_box_color, 255, 0, 0);
-		red_box.draw(shader_vertex_position);
-
-		glUniform3f(uniform_box_color, 0, 255, 0);
-		green_box.draw(shader_vertex_position);
-
-		glUniform3f(uniform_box_color, 0, 0, 255);
-		blue_box.draw(shader_vertex_position);
+		//for (auto&& box : boxes)
+		//	box.draw(shader_vertex_position);
 	}
 
 	void TestRenderer::calculateVP(Window& window)
 	{
-		camera_offset += 0.01;
-		auto normal_vector = mvl::cross(box_axis1, box_axis2);
-		auto pos = cos(camera_offset) * normal_vector + sin(camera_offset) * box_axis1;
-		view_matrix = aff::lookAt(box_center + ((GLfloat) 2) * pos, box_center + box_axis1, box_axis2);
-		proj_matrix = aff::perspective<GLfloat>(90.0 * M_PI / 180.0, ((GLfloat) window.getHeight()) / ((GLfloat) window.getWidth()), 1.0, 10.0);
+		view_matrix = aff::lookAt(aff::z_axis<GLfloat,3>(), mvl::Vector<GLfloat,3>(), aff::y_axis<GLfloat,3>());
+//		proj_matrix = aff::orthographic(mvl::Vector<GLfloat,3>{2.0 * radius * (GLfloat)(num_points + 2), -2.0, 1.0},
+//						mvl::Vector<GLfloat,3>{-1.0,2.0,-1.0});
+		GLfloat size = 2 * radius * (GLfloat) num_points;
+		proj_matrix = aff::orthographic(mvl::Vector<GLfloat,3>{size - radius,size/2,1}, mvl::Vector<GLfloat,3>{-radius,-size/2,-1});
 	}
 
 	TestProgram::TestProgram()
@@ -72,7 +54,7 @@ namespace ogl
 
 	void TestProgram::render()
 	{
-		glClearColor(0, 0, 0, 1);
+		glClearColor(255, 255, 255, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		test_renderer.render(window);
@@ -93,6 +75,12 @@ namespace ogl
 					return false;
 
 				case SDL_WINDOWEVENT:
+					switch(ev.window.event)
+					{
+						case SDL_WINDOWEVENT_RESIZED:
+							std::cout << "Window " << ev.window.windowID << " resized to " << ev.window.data1 << "x" << ev.window.data2 << std::endl;
+							glViewport(0,0,ev.window.data1,ev.window.data2);
+					};
 					break;
 
 				case SDL_MOUSEBUTTONDOWN:

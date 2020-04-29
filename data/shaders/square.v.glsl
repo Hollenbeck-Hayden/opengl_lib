@@ -1,7 +1,10 @@
-attribute vec3 position;
+attribute vec2 position;
 
 uniform mat4 vp_matrix;
 
+varying vec2 v_position;
+
 void main() {
-	gl_Position = vp_matrix * vec4(position, 1.0);
+	v_position = position;
+	gl_Position = vp_matrix * vec4(position, 0.0, 1.0);
 }
