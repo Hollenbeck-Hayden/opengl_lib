@@ -1,11 +1,11 @@
-#include "mvl.h"
-#include "affine.h"
-#include "hud_renderer.h"
+#include "mvl/mvl.h"
+#include "mvl/affine.h"
+#include "opengl/hud_renderer.h"
 
 namespace ogl
 {
 	HudRenderer::HudRenderer()
-		: Renderer("hud.v.glsl", "hud.f.glsl")
+		: Renderer("../data/shaders/hud.v.glsl", "../data/shaders/hud.f.glsl")
 	{
 		uniform_hud_color = program.get_uniform("hud_color");
 

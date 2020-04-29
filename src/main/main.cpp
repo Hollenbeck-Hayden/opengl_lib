@@ -2,8 +2,9 @@
 
 #include "SDL.h"
 
-#include "opengl_library.h"
-#include "test_renderer.h"
+#include "opengl/opengl_library.h"
+//#include "opengl/test_renderer.h"
+#include "opengl/line_renderer.h"
 
 int main(int argc, char** argv)
 {
@@ -13,7 +14,7 @@ int main(int argc, char** argv)
 	
 	try
 	{
-		ogl::TestProgram prog;
+		ogl::LineProgram prog;
 
 		ogl::print_opengl_info();
 
@@ -30,5 +31,5 @@ int main(int argc, char** argv)
 	}
 
 	SDL_Quit();
-	return EXIT_SUCCESS;
+	return exit_status;
 }

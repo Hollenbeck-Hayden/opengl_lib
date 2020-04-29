@@ -2,8 +2,8 @@
 
 #include <GL/glew.h>
 #include "SDL.h"
-#include "mvl.h"
-#include "affine.h"
+#include "mvl/mvl.h"
+#include "mvl/affine.h"
 
 #include <iostream>
 #include <sstream>
@@ -77,7 +77,7 @@ namespace ogl {
 	protected:
 		ShaderProgram program;
 
-		GLint shader_vertex_position;
+		//GLint shader_vertex_position;
 		GLint shader_uniform_vp_matrix;
 
 		aff::HomMatrix<GLfloat,3> proj_matrix;

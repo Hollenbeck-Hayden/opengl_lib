@@ -1,7 +1,7 @@
 #pragma once
 
-#include "opengl_library.h"
-#include "sprite.h"
+#include "opengl/opengl_library.h"
+#include "opengl/sprite.h"
 
 namespace ogl
 {

@@ -1,4 +1,4 @@
-#include "opengl_library.h"
+#include "opengl/opengl_library.h"
 
 #include <iostream>
 #include <fstream>
@@ -200,7 +200,7 @@ namespace ogl {
 	Renderer::Renderer(const std::string& vs_filename, const std::string& fs_filename)
 		: program(vs_filename, fs_filename)
 	{
-		shader_vertex_position = program.get_attrib("position");
+		//shader_vertex_position = program.get_attrib("position");
 		shader_uniform_vp_matrix = program.get_uniform("vp_matrix");
 
 		view_matrix = aff::identity<GLfloat,3>();
@@ -210,7 +210,7 @@ namespace ogl {
 	void Renderer::render(Window& window)
 	{
 		program.useProgram();
-		glEnableVertexAttribArray(shader_vertex_position);
+		//glEnableVertexAttribArray(shader_vertex_position);
 
 		this->calculateVP(window);
 
@@ -218,6 +218,6 @@ namespace ogl {
 
 		this->draw();
 
-		glDisableVertexAttribArray(shader_vertex_position);
+		//glDisableVertexAttribArray(shader_vertex_position);
 	}
 }
